@@ -1,4 +1,4 @@
-package se.martinanyberg.tvattstuga_booking;
+package se.martinanyberg.tvattstugabooking;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
