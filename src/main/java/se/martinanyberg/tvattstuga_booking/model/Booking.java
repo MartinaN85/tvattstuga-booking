@@ -1,4 +1,4 @@
-package se.martinanyberg.tvattstugabooking.model;
+package se.martinanyberg.tvattstuga_booking.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
