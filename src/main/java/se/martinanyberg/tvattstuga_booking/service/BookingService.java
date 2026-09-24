@@ -19,7 +19,35 @@ public class BookingService {
         return repository.findAll();
     }
 
+    public List<Booking> getBookingsByUser(String userEmail) {
+        return repository.findByUserEmail(userEmail);
+    }
+
     public Booking createBooking(Booking booking) {
+
+        boolean alreadyBooked =
+                repository.existsByDateAndTimeSlot(
+                        booking.getDate(),
+                        booking.getTimeSlot()
+                );
+
+        if (alreadyBooked) {
+            throw new IllegalArgumentException(
+                    "Tiden är redan bokad"
+            );
+        }
+
+        long numberOfBookings =
+                repository.countByUserEmail(
+                        booking.getUserEmail()
+                );
+
+        if (numberOfBookings >= 2) {
+            throw new IllegalArgumentException(
+                    "Du kan endast ha två bokningar samtidigt"
+            );
+        }
+
         return repository.save(booking);
     }
 

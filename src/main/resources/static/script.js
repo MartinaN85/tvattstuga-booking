@@ -28,90 +28,169 @@ const weekdayNames = [
 ];
 
 let currentWeekOffset = 0;
-let myBookings = [];
 
 
 /* ---------------- LOGIN ---------------- */
 
 checkLogin();
 
-loginButton.addEventListener("click", () => {
+loginButton.addEventListener("click", async () => {
 
-    const userId = document.getElementById("userId").value.trim();
+    const email =
+        document.getElementById("userId").value.trim();
 
-    if (userId === "") {
+    if (email === "") {
         alert("Ange e-post");
         return;
     }
 
-    localStorage.setItem("loggedInUser", userId);
+    try {
 
-    checkLogin();
+        const response = await fetch("/api/users/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: email
+            })
+        });
+
+        if (!response.ok) {
+
+            const errorText =
+                await response.text();
+
+            console.error(
+                "Login failed:",
+                response.status,
+                errorText
+            );
+
+            alert(
+                "Ange en giltig e-postadress som slutar på .se, .com eller .nu"
+            );
+
+            return;
+        }
+
+        const user =
+            await response.json();
+
+        localStorage.setItem(
+            "loggedInUser",
+            user.email
+        );
+
+        await checkLogin();
+
+    } catch (error) {
+
+        console.error(
+            "Login failed:",
+            error
+        );
+
+        alert(
+            "Kunde inte ansluta till servern"
+        );
+    }
 });
 
 
 logoutButton.addEventListener("click", () => {
 
-    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem(
+        "loggedInUser"
+    );
 
     location.reload();
 });
 
 
-function checkLogin() {
+async function checkLogin() {
 
-    const user = localStorage.getItem("loggedInUser");
+    const user =
+        localStorage.getItem(
+            "loggedInUser"
+        );
 
     if (!user) {
-        loginPage.classList.remove("hidden");
-        bookingPage.classList.add("hidden");
+
+        loginPage.classList.remove(
+            "hidden"
+        );
+
+        bookingPage.classList.add(
+            "hidden"
+        );
+
         return;
     }
 
-    loginPage.classList.add("hidden");
-    bookingPage.classList.remove("hidden");
+    loginPage.classList.add(
+        "hidden"
+    );
 
-    welcomeText.textContent = `Inloggad som: ${user}`;
+    bookingPage.classList.remove(
+        "hidden"
+    );
 
-    createCalendar();
-    updateBookings();
+    welcomeText.textContent =
+        `Inloggad som: ${user}`;
+
+    await refreshBookings();
 }
 
 
 /* ---------------- VECKONAVIGERING ---------------- */
 
-previousWeekButton.addEventListener("click", () => {
+previousWeekButton.addEventListener(
+    "click",
+    async () => {
 
-    currentWeekOffset--;
+        currentWeekOffset--;
 
-    createCalendar();
-});
+        await createCalendar();
+    }
+);
 
 
-nextWeekButton.addEventListener("click", () => {
+nextWeekButton.addEventListener(
+    "click",
+    async () => {
 
-    currentWeekOffset++;
+        currentWeekOffset++;
 
-    createCalendar();
-});
+        await createCalendar();
+    }
+);
 
 
 /* ---------------- DATUM ---------------- */
 
 function getMonday() {
 
-    const today = new Date();
+    const today =
+        new Date();
 
-    const currentDay = today.getDay();
+    const currentDay =
+        today.getDay();
 
     const distanceToMonday =
         currentDay === 0
             ? -6
             : 1 - currentDay;
 
-    const monday = new Date(today);
+    const monday =
+        new Date(today);
 
-    monday.setHours(0, 0, 0, 0);
+    monday.setHours(
+        0,
+        0,
+        0,
+        0
+    );
 
     monday.setDate(
         today.getDate()
@@ -125,15 +204,19 @@ function getMonday() {
 
 function getWeekDays() {
 
-    const monday = getMonday();
+    const monday =
+        getMonday();
 
     const weekDays = [];
 
     for (let i = 0; i < 7; i++) {
 
-        const date = new Date(monday);
+        const date =
+            new Date(monday);
 
-        date.setDate(monday.getDate() + i);
+        date.setDate(
+            monday.getDate() + i
+        );
 
         weekDays.push({
             name: weekdayNames[i],
@@ -149,29 +232,131 @@ function getWeekDays() {
 
 function formatDate(date) {
 
-    const year = date.getFullYear();
+    const year =
+        date.getFullYear();
 
     const month =
-        String(date.getMonth() + 1)
-            .padStart(2, "0");
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
 
     const day =
-        String(date.getDate())
-            .padStart(2, "0");
+        String(
+            date.getDate()
+        ).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
 }
 
 
+function formatBookingDate(dateString) {
+
+    const date =
+        new Date(
+            dateString + "T00:00:00"
+        );
+
+    const weekday =
+        weekdayNames[
+            (date.getDay() + 6) % 7
+        ];
+
+    return `${weekday} ${date.getDate()}/${date.getMonth() + 1}`;
+}
+
+
+/* ---------------- API ---------------- */
+
+async function getAllBookings() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/bookings"
+            );
+
+        if (!response.ok) {
+
+            console.error(
+                "Could not load bookings:",
+                response.status
+            );
+
+            return [];
+        }
+
+        return await response.json();
+
+    } catch (error) {
+
+        console.error(
+            "Could not load bookings:",
+            error
+        );
+
+        return [];
+    }
+}
+
+
+async function getMyBookings() {
+
+    const email =
+        localStorage.getItem(
+            "loggedInUser"
+        );
+
+    if (!email) {
+        return [];
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/bookings/user?email=${encodeURIComponent(email)}`
+            );
+
+        if (!response.ok) {
+
+            console.error(
+                "Could not load user bookings:",
+                response.status
+            );
+
+            return [];
+        }
+
+        return await response.json();
+
+    } catch (error) {
+
+        console.error(
+            "Could not load user bookings:",
+            error
+        );
+
+        return [];
+    }
+}
+
+
 /* ---------------- KALENDER ---------------- */
 
-function createCalendar() {
+async function createCalendar() {
 
     calendar.innerHTML = "";
 
-    const weekDays = getWeekDays();
+    const bookings =
+        await getAllBookings();
 
-    updateWeekLabel(weekDays);
+    const weekDays =
+        getWeekDays();
+
+    updateWeekLabel(
+        weekDays
+    );
 
     addHeader("Tid");
 
@@ -180,70 +365,88 @@ function createCalendar() {
         addHeader(
             `${day.name} ${day.displayDate}`
         );
-
     });
 
 
     timeSlots.forEach(slot => {
 
         const timeCell =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
-        timeCell.className = "time";
-        timeCell.textContent = slot;
+        timeCell.className =
+            "time";
 
-        calendar.appendChild(timeCell);
+        timeCell.textContent =
+            slot;
+
+        calendar.appendChild(
+            timeCell
+        );
 
 
         weekDays.forEach(day => {
 
             const cell =
-                document.createElement("div");
+                document.createElement(
+                    "div"
+                );
 
             cell.classList.add(
                 "slot",
                 "available"
             );
 
-            cell.dataset.date = day.date;
-            cell.dataset.day = day.name;
-            cell.dataset.displayDate = day.displayDate;
-            cell.dataset.slot = slot;
+            cell.dataset.date =
+                day.date;
+
+            cell.dataset.slot =
+                slot;
 
 
             const alreadyBooked =
-                myBookings.some(booking =>
-                    booking.date === day.date &&
-                    booking.slot === slot
+                bookings.some(
+                    booking =>
+                        booking.date === day.date &&
+                        booking.timeSlot === slot
                 );
 
 
             if (alreadyBooked) {
-                cell.classList.remove("available");
-                cell.classList.add("booked");
+
+                cell.classList.remove(
+                    "available"
+                );
+
+                cell.classList.add(
+                    "booked"
+                );
             }
 
 
-            cell.addEventListener("click", () => {
+            cell.addEventListener(
+                "click",
+                async () => {
 
-                if (cell.classList.contains("booked")) {
-                    return;
+                    if (
+                        cell.classList.contains(
+                            "booked"
+                        )
+                    ) {
+                        return;
+                    }
+
+                    await bookTime(
+                        day.date,
+                        slot
+                    );
                 }
+            );
 
-                myBookings.push({
-                    day: day.name,
-                    date: day.date,
-                    displayDate: day.displayDate,
-                    slot: slot
-                });
-
-                createCalendar();
-
-                updateBookings();
-            });
-
-
-            calendar.appendChild(cell);
+            calendar.appendChild(
+                cell
+            );
         });
     });
 }
@@ -252,64 +455,226 @@ function createCalendar() {
 function addHeader(text) {
 
     const header =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
-    header.className = "header";
+    header.className =
+        "header";
 
-    header.textContent = text;
+    header.textContent =
+        text;
 
-    calendar.appendChild(header);
+    calendar.appendChild(
+        header
+    );
 }
 
 
 function updateWeekLabel(weekDays) {
 
-    const first = weekDays[0];
-    const last = weekDays[6];
+    const first =
+        weekDays[0];
+
+    const last =
+        weekDays[6];
 
     weekLabel.textContent =
         `${first.displayDate} - ${last.displayDate}`;
 }
 
 
+/* ---------------- BOKA ---------------- */
+
+async function bookTime(
+    date,
+    timeSlot
+) {
+
+    const email =
+        localStorage.getItem(
+            "loggedInUser"
+        );
+
+    if (!email) {
+
+        alert(
+            "Du måste vara inloggad"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/bookings",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        date: date,
+                        timeSlot: timeSlot,
+                        userEmail: email
+                    })
+                }
+            );
+
+
+        if (!response.ok) {
+
+            const errorText =
+                await response.text();
+
+            console.error(
+                "Booking failed:",
+                response.status,
+                errorText
+            );
+
+            alert(
+                "Bokningen kunde inte genomföras. Tiden kan redan vara bokad eller så har du redan två bokningar."
+            );
+
+            return;
+        }
+
+
+        await refreshBookings();
+
+    } catch (error) {
+
+        console.error(
+            "Booking failed:",
+            error
+        );
+
+        alert(
+            "Kunde inte genomföra bokningen"
+        );
+    }
+}
+
+
 /* ---------------- MINA BOKNINGAR ---------------- */
 
-function updateBookings() {
+async function updateBookings() {
 
     bookingList.innerHTML = "";
 
-    myBookings.forEach((booking, index) => {
+    const bookings =
+        await getMyBookings();
+
+
+    bookings.forEach(booking => {
 
         const li =
-            document.createElement("li");
+            document.createElement(
+                "li"
+            );
 
         const bookingText =
-            document.createElement("span");
+            document.createElement(
+                "span"
+            );
 
         bookingText.textContent =
-            `${booking.day} ${booking.displayDate} ${booking.slot}`;
+            `${formatBookingDate(booking.date)} ${booking.timeSlot}`;
 
 
         const deleteButton =
-            document.createElement("button");
+            document.createElement(
+                "button"
+            );
 
-        deleteButton.textContent = "Avboka";
-
-
-        deleteButton.addEventListener("click", () => {
-
-            myBookings.splice(index, 1);
-
-            createCalendar();
-
-            updateBookings();
-        });
+        deleteButton.textContent =
+            "Avboka";
 
 
-        li.appendChild(bookingText);
+        deleteButton.addEventListener(
+            "click",
+            async () => {
 
-        li.appendChild(deleteButton);
+                await cancelBooking(
+                    booking.id
+                );
+            }
+        );
 
-        bookingList.appendChild(li);
+
+        li.appendChild(
+            bookingText
+        );
+
+        li.appendChild(
+            deleteButton
+        );
+
+        bookingList.appendChild(
+            li
+        );
     });
+}
+
+
+/* ---------------- AVBOKA ---------------- */
+
+async function cancelBooking(id) {
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/bookings/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            console.error(
+                "Cancel booking failed:",
+                response.status
+            );
+
+            alert(
+                "Bokningen kunde inte avbokas"
+            );
+
+            return;
+        }
+
+
+        await refreshBookings();
+
+    } catch (error) {
+
+        console.error(
+            "Cancel booking failed:",
+            error
+        );
+
+        alert(
+            "Kunde inte avboka bokningen"
+        );
+    }
+}
+
+
+/* ---------------- UPPDATERA SIDAN ---------------- */
+
+async function refreshBookings() {
+
+    await createCalendar();
+
+    await updateBookings();
 }

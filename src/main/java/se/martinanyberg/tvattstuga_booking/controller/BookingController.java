@@ -21,18 +21,24 @@ public class BookingController {
         return service.getAllBookings();
     }
 
+    @GetMapping("/user")
+    public List<Booking> getBookingsByUser(
+            @RequestParam String email
+    ) {
+        return service.getBookingsByUser(email);
+    }
+
     @PostMapping
-    public Booking createBooking(@RequestBody Booking booking) {
+    public Booking createBooking(
+            @RequestBody Booking booking
+    ) {
         return service.createBooking(booking);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteBooking(@PathVariable Long id) {
+    public void deleteBooking(
+            @PathVariable Long id
+    ) {
         service.deleteBooking(id);
     }
 }
-
-
-
-
-

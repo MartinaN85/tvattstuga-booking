@@ -12,20 +12,25 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
     private String date;
 
     private String timeSlot;
 
+    private String userEmail;
+
     public Booking() {
     }
 
-    public Booking(Long id, String name, String date, String timeSlot) {
+    public Booking(
+            Long id,
+            String date,
+            String timeSlot,
+            String userEmail
+    ) {
         this.id = id;
-        this.name = name;
         this.date = date;
         this.timeSlot = timeSlot;
+        this.userEmail = userEmail;
     }
 
     public Long getId() {
@@ -34,14 +39,6 @@ public class Booking {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDate() {
@@ -58,5 +55,13 @@ public class Booking {
 
     public void setTimeSlot(String timeSlot) {
         this.timeSlot = timeSlot;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }
