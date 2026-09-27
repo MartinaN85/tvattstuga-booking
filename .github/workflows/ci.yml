@@ -53,6 +53,7 @@ jobs:
         run: |
           ./mvnw exec:java \
             -Dexec.mainClass=com.microsoft.playwright.CLI \
+            -Dexec.classpathScope=test \
             -Dexec.args="install --with-deps chromium"
 
       - name: Start Spring Boot
@@ -79,4 +80,9 @@ jobs:
 
       - name: Show Spring Boot log on failure
         if: failure()
-        run: cat spring-boot.log
+        run: |
+          if [ -f spring-boot.log ]; then
+            cat spring-boot.log
+          else
+            echo "Spring Boot log does not exist"
+          fi
