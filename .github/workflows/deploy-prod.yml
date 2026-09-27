@@ -1,0 +1,20 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Render Production
+        run: curl --fail --show-error --silent "${{ secrets.RENDER_DEPLOY_HOOK }}"
