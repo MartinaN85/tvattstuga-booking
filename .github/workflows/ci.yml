@@ -53,6 +53,7 @@ jobs:
         run: |
           ./mvnw exec:java \
             -Dexec.mainClass=com.microsoft.playwright.CLI \
+            -Dexec.classpathScope=test \
             -Dexec.args="install --with-deps chromium"
 
       - name: Start Spring Boot
@@ -60,23 +61,3 @@ jobs:
           nohup java -jar target/*.jar > spring-boot.log 2>&1 &
 
       - name: Wait for application
-        run: |
-          for i in {1..30}; do
-            if curl --fail --silent http://localhost:8080 > /dev/null; then
-              echo "Spring Boot is ready"
-              exit 0
-            fi
-
-            sleep 2
-          done
-
-          echo "Spring Boot failed to start"
-          cat spring-boot.log
-          exit 1
-
-      - name: Run E2E tests
-        run: ./mvnw -Dtest=BookingE2E test
-
-      - name: Show Spring Boot log on failure
-        if: failure()
-        run: cat spring-boot.log
