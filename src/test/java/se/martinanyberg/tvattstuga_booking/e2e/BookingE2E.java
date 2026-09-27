@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
-class BookingE2ETest {
+class BookingE2E {
 
     private static final String BASE_URL =
             "http://localhost:8080";
