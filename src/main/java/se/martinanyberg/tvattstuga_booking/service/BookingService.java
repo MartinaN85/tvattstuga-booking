@@ -25,6 +25,33 @@ public class BookingService {
 
     public Booking createBooking(Booking booking) {
 
+        if (booking == null) {
+            throw new IllegalArgumentException(
+                    "Bokningen får inte vara null"
+            );
+        }
+
+        if (booking.getDate() == null ||
+                booking.getDate().isBlank()) {
+            throw new IllegalArgumentException(
+                    "Datum måste anges"
+            );
+        }
+
+        if (booking.getTimeSlot() == null ||
+                booking.getTimeSlot().isBlank()) {
+            throw new IllegalArgumentException(
+                    "Tid måste anges"
+            );
+        }
+
+        if (booking.getUserEmail() == null ||
+                booking.getUserEmail().isBlank()) {
+            throw new IllegalArgumentException(
+                    "E-post måste anges"
+            );
+        }
+
         boolean alreadyBooked =
                 repository.existsByDateAndTimeSlot(
                         booking.getDate(),

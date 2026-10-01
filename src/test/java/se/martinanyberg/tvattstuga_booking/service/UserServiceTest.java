@@ -25,6 +25,24 @@ class UserServiceTest {
 
 
     @Test
+    void login_rejectsNullEmail() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.login(null)
+                );
+
+        assertEquals(
+                "E-post får inte vara tom",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
     void login_rejectsEmptyEmail() {
 
         IllegalArgumentException exception =
@@ -43,12 +61,102 @@ class UserServiceTest {
 
 
     @Test
+    void login_rejectsBlankEmail() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.login("   ")
+                );
+
+        assertEquals(
+                "E-post får inte vara tom",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
     void login_rejectsEmailWithoutAt() {
 
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> service.login("martinatest.se")
+                );
+
+        assertEquals(
+                "Ange en giltig e-post som slutar på .se, .com eller .nu",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void login_rejectsEmailWithoutUsername() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.login("@test.se")
+                );
+
+        assertEquals(
+                "Ange en giltig e-post som slutar på .se, .com eller .nu",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void login_rejectsEmailWithoutDomain() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.login("martina@")
+                );
+
+        assertEquals(
+                "Ange en giltig e-post som slutar på .se, .com eller .nu",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void login_rejectsEmailWithoutTopLevelDomain() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.login("martina@test")
+                );
+
+        assertEquals(
+                "Ange en giltig e-post som slutar på .se, .com eller .nu",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void login_rejectsEmailContainingWhitespace() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.login("martina test@test.se")
                 );
 
         assertEquals(
@@ -81,11 +189,9 @@ class UserServiceTest {
     @Test
     void login_acceptsValidSeEmail() {
 
-        String email =
-                "martina@test.se";
+        String email = "martina@test.se";
 
-        User user =
-                new User(email);
+        User user = new User(email);
 
         when(repository.findById(email))
                 .thenReturn(Optional.of(user));
@@ -100,17 +206,18 @@ class UserServiceTest {
 
         verify(repository)
                 .findById(email);
+
+        verify(repository, never())
+                .save(any(User.class));
     }
 
 
     @Test
     void login_acceptsValidComEmail() {
 
-        String email =
-                "martina@gmail.com";
+        String email = "martina@gmail.com";
 
-        User user =
-                new User(email);
+        User user = new User(email);
 
         when(repository.findById(email))
                 .thenReturn(Optional.of(user));
@@ -122,17 +229,21 @@ class UserServiceTest {
                 email,
                 result.getEmail()
         );
+
+        verify(repository)
+                .findById(email);
+
+        verify(repository, never())
+                .save(any(User.class));
     }
 
 
     @Test
     void login_acceptsValidNuEmail() {
 
-        String email =
-                "martina@test.nu";
+        String email = "martina@test.nu";
 
-        User user =
-                new User(email);
+        User user = new User(email);
 
         when(repository.findById(email))
                 .thenReturn(Optional.of(user));
@@ -144,14 +255,19 @@ class UserServiceTest {
                 email,
                 result.getEmail()
         );
+
+        verify(repository)
+                .findById(email);
+
+        verify(repository, never())
+                .save(any(User.class));
     }
 
 
     @Test
     void login_createsUserWhenUserDoesNotExist() {
 
-        String email =
-                "newuser@test.se";
+        String email = "newuser@test.se";
 
         when(repository.findById(email))
                 .thenReturn(Optional.empty());
@@ -170,6 +286,36 @@ class UserServiceTest {
         );
 
         verify(repository)
+                .findById(email);
+
+        verify(repository)
+                .save(any(User.class));
+    }
+
+
+    @Test
+    void login_doesNotCreateUserWhenUserAlreadyExists() {
+
+        String email = "martina@test.se";
+
+        User existingUser =
+                new User(email);
+
+        when(repository.findById(email))
+                .thenReturn(Optional.of(existingUser));
+
+        User result =
+                service.login(email);
+
+        assertEquals(
+                email,
+                result.getEmail()
+        );
+
+        verify(repository)
+                .findById(email);
+
+        verify(repository, never())
                 .save(any(User.class));
     }
 
@@ -199,5 +345,11 @@ class UserServiceTest {
 
         verify(repository)
                 .findById(normalized);
+
+        verify(repository, never())
+                .findById(input);
+
+        verify(repository, never())
+                .save(any(User.class));
     }
 }

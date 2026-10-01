@@ -29,7 +29,7 @@ class BookingServiceTest {
 
         Booking booking = new Booking(
                 1L,
-                "2026-09-25",
+                "2026-10-05",
                 "18-21",
                 "martina@test.se"
         );
@@ -42,7 +42,7 @@ class BookingServiceTest {
 
         assertEquals(1, bookings.size());
         assertEquals(
-                "2026-09-25",
+                "2026-10-05",
                 bookings.get(0).getDate()
         );
         assertEquals(
@@ -53,6 +53,23 @@ class BookingServiceTest {
                 "martina@test.se",
                 bookings.get(0).getUserEmail()
         );
+
+        verify(repository).findAll();
+    }
+
+
+    @Test
+    void getAllBookings_returnsEmptyListWhenNoBookingsExist() {
+
+        when(repository.findAll())
+                .thenReturn(List.of());
+
+        List<Booking> bookings =
+                service.getAllBookings();
+
+        assertEquals(0, bookings.size());
+
+        verify(repository).findAll();
     }
 
 
@@ -61,7 +78,7 @@ class BookingServiceTest {
 
         Booking booking = new Booking(
                 null,
-                "2026-09-28",
+                "2026-10-05",
                 "08-11",
                 "martina@test.se"
         );
@@ -78,10 +95,39 @@ class BookingServiceTest {
         when(repository.save(booking))
                 .thenReturn(booking);
 
-
         Booking result =
                 service.createBooking(booking);
 
+        assertEquals(booking, result);
+
+        verify(repository).save(booking);
+    }
+
+
+    @Test
+    void createBooking_allowsSecondBooking() {
+
+        Booking booking = new Booking(
+                null,
+                "2026-10-06",
+                "14-17",
+                "martina@test.se"
+        );
+
+        when(repository.existsByDateAndTimeSlot(
+                booking.getDate(),
+                booking.getTimeSlot()
+        )).thenReturn(false);
+
+        when(repository.countByUserEmail(
+                booking.getUserEmail()
+        )).thenReturn(1L);
+
+        when(repository.save(booking))
+                .thenReturn(booking);
+
+        Booking result =
+                service.createBooking(booking);
 
         assertEquals(booking, result);
 
@@ -94,7 +140,7 @@ class BookingServiceTest {
 
         Booking booking = new Booking(
                 null,
-                "2026-09-28",
+                "2026-10-05",
                 "08-11",
                 "martina@test.se"
         );
@@ -104,18 +150,19 @@ class BookingServiceTest {
                 booking.getTimeSlot()
         )).thenReturn(true);
 
-
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> service.createBooking(booking)
                 );
 
-
         assertEquals(
                 "Tiden är redan bokad",
                 exception.getMessage()
         );
+
+        verify(repository, never())
+                .countByUserEmail(anyString());
 
         verify(repository, never())
                 .save(any(Booking.class));
@@ -127,7 +174,7 @@ class BookingServiceTest {
 
         Booking booking = new Booking(
                 null,
-                "2026-09-29",
+                "2026-10-06",
                 "14-17",
                 "martina@test.se"
         );
@@ -141,13 +188,11 @@ class BookingServiceTest {
                 booking.getUserEmail()
         )).thenReturn(2L);
 
-
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> service.createBooking(booking)
                 );
-
 
         assertEquals(
                 "Du kan endast ha två bokningar samtidigt",
@@ -160,21 +205,188 @@ class BookingServiceTest {
 
 
     @Test
+    void createBooking_rejectsNullBooking() {
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(null)
+                );
+
+        assertEquals(
+                "Bokningen får inte vara null",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void createBooking_rejectsMissingDate() {
+
+        Booking booking = new Booking(
+                null,
+                "",
+                "08-11",
+                "martina@test.se"
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(booking)
+                );
+
+        assertEquals(
+                "Datum måste anges",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void createBooking_rejectsNullDate() {
+
+        Booking booking = new Booking(
+                null,
+                null,
+                "08-11",
+                "martina@test.se"
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(booking)
+                );
+
+        assertEquals(
+                "Datum måste anges",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void createBooking_rejectsMissingTimeSlot() {
+
+        Booking booking = new Booking(
+                null,
+                "2026-10-05",
+                "",
+                "martina@test.se"
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(booking)
+                );
+
+        assertEquals(
+                "Tid måste anges",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void createBooking_rejectsNullTimeSlot() {
+
+        Booking booking = new Booking(
+                null,
+                "2026-10-05",
+                null,
+                "martina@test.se"
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(booking)
+                );
+
+        assertEquals(
+                "Tid måste anges",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void createBooking_rejectsMissingUserEmail() {
+
+        Booking booking = new Booking(
+                null,
+                "2026-10-05",
+                "08-11",
+                ""
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(booking)
+                );
+
+        assertEquals(
+                "E-post måste anges",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
+    void createBooking_rejectsNullUserEmail() {
+
+        Booking booking = new Booking(
+                null,
+                "2026-10-05",
+                "08-11",
+                null
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.createBooking(booking)
+                );
+
+        assertEquals(
+                "E-post måste anges",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(repository);
+    }
+
+
+    @Test
     void getBookingsByUser_returnsOnlyUsersBookings() {
 
-        String email =
-                "martina@test.se";
+        String email = "martina@test.se";
 
         Booking booking1 = new Booking(
                 1L,
-                "2026-09-28",
+                "2026-10-05",
                 "08-11",
                 email
         );
 
         Booking booking2 = new Booking(
                 2L,
-                "2026-09-30",
+                "2026-10-06",
                 "14-17",
                 email
         );
@@ -187,10 +399,8 @@ class BookingServiceTest {
                         )
                 );
 
-
         List<Booking> bookings =
                 service.getBookingsByUser(email);
-
 
         assertEquals(2, bookings.size());
 
@@ -203,6 +413,27 @@ class BookingServiceTest {
                 email,
                 bookings.get(1).getUserEmail()
         );
+
+        verify(repository)
+                .findByUserEmail(email);
+    }
+
+
+    @Test
+    void getBookingsByUser_returnsEmptyListWhenUserHasNoBookings() {
+
+        String email = "martina@test.se";
+
+        when(repository.findByUserEmail(email))
+                .thenReturn(List.of());
+
+        List<Booking> bookings =
+                service.getBookingsByUser(email);
+
+        assertEquals(0, bookings.size());
+
+        verify(repository)
+                .findByUserEmail(email);
     }
 
 
@@ -211,9 +442,7 @@ class BookingServiceTest {
 
         Long bookingId = 1L;
 
-
         service.deleteBooking(bookingId);
-
 
         verify(repository)
                 .deleteById(bookingId);
